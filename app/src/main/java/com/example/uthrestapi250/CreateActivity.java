@@ -87,6 +87,17 @@ public class CreateActivity extends AppCompatActivity {
         btnfoto.setOnClickListener(v -> PermisosCamara());
 
         btncreate.setOnClickListener(v -> SendData());
+
+        Button btnAtras = findViewById(R.id.btnAtras);
+        btnAtras.setOnClickListener(v -> {
+            new androidx.appcompat.app.AlertDialog.Builder(CreateActivity.this)
+                    .setTitle("Confirmación")
+                    .setMessage("¿Deseas regresar al menú principal?")
+                    .setPositiveButton("Sí", (dialog, which) -> finish())
+                    .setNegativeButton("Cancelar", null)
+                    .show();
+        });
+
     }
 
     private void SendData() {

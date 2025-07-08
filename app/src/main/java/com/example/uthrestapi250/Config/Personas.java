@@ -1,7 +1,10 @@
 package com.example.uthrestapi250.Config;
 
-public class Personas {
-    public String id;
+import java.io.Serializable;
+
+public class Personas implements Serializable {
+    public int id;
+
     public String nombres;
     public String apellidos;
     public String direccion;
@@ -14,7 +17,7 @@ public class Personas {
     }
 
     // Constructor con parámetros (opcional)
-    public Personas(String id, String nombres, String apellidos, String direccion, String telefono, String fechanac, String foto) {
+    public Personas(int id, String nombres, String apellidos, String direccion, String telefono, String fechanac, String foto) {
         this.id = id;
         this.nombres = nombres;
         this.apellidos = apellidos;
@@ -24,13 +27,14 @@ public class Personas {
         this.foto = foto;
     }
 
-    public String getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(int id) {
         this.id = id;
     }
+
 
     public String getNombres() {
         return nombres;
