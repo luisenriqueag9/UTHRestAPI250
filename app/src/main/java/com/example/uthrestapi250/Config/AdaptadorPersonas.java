@@ -11,6 +11,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.volley.Request;
@@ -19,6 +20,9 @@ import com.android.volley.toolbox.Volley;
 import com.bumptech.glide.Glide;
 import com.example.uthrestapi250.CreateActivity;
 import com.example.uthrestapi250.R;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 
 import java.util.List;
 
@@ -44,21 +48,18 @@ public class AdaptadorPersonas extends RecyclerView.Adapter<AdaptadorPersonas.Vi
         holder.txtFecha.setText("Dirección: " + p.getDireccion());
         holder.txtTelefono.setText("Tel: " + p.getTelefono());
 
-        // Cargar foto si existe
         if (p.getFoto() != null && !p.getFoto().isEmpty()) {
             Glide.with(holder.itemView.getContext()).load(p.getFoto()).into(holder.imgPersona);
         } else {
             holder.imgPersona.setImageResource(R.drawable.ic_person);
         }
 
-        // Al mantener presionado, mostrar opciones
+        // Clic largo para mostrar opciones
         holder.itemView.setOnLongClickListener(v -> {
             showOptionsDialog(holder.itemView.getContext(), p);
             return true;
         });
     }
-
-
 
     @Override
     public int getItemCount() {
@@ -68,15 +69,13 @@ public class AdaptadorPersonas extends RecyclerView.Adapter<AdaptadorPersonas.Vi
     private void showOptionsDialog(Context context, Personas persona) {
         new AlertDialog.Builder(context)
                 .setTitle("Opciones")
-                .setMessage("¿Qué desea hacer con " + persona.getNombres() + "?")
+                .setMessage("¿Qué deseas hacer con " + persona.getNombres() + "?")
                 .setPositiveButton("Editar", (dialog, which) -> {
-                    // Ir a pantalla de edición
-                    Intent intent = new Intent(context, CreateActivity.class); // Reutilizamos CreateActivity
-                    intent.putExtra("persona", persona); // Pasamos la persona (debes implementar Serializable)
+                    Intent intent = new Intent(context, CreateActivity.class);
+                    intent.putExtra("persona", persona); // Persona debe implementar Serializable
                     context.startActivity(intent);
                 })
                 .setNegativeButton("Eliminar", (dialog, which) -> {
-                    // Llamar API de eliminación (puede ser método en ListaPersonasActivity o aquí mismo)
                     eliminarPersona(context, persona.getId());
                 })
                 .setNeutralButton("Cancelar", null)
@@ -84,18 +83,52 @@ public class AdaptadorPersonas extends RecyclerView.Adapter<AdaptadorPersonas.Vi
     }
 
     private void eliminarPersona(Context context, int idPersona) {
-        String url = "http://10.0.2.2/CRUD-PHP/DeletePersons.php?id=" + idPersona;
+        String url = "http://10.0.2.2/CRUD-PHP/DeletePersons.php";
 
-        StringRequest request = new StringRequest(Request.Method.GET, url,
+        JSONObject jsonBody = new JSONObject();
+        try {
+            jsonBody.put("id", idPersona);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        CustomJsonRequest request = new CustomJsonRequest(
+                Request.Method.POST,
+                url,
+                jsonBody,
+                null,
                 response -> {
                     Toast.makeText(context, "Persona eliminada", Toast.LENGTH_SHORT).show();
-                    // Recargar o notificar a la actividad para actualizar lista
+
+                    // Eliminar de la lista y actualizar RecyclerView
+                    int position = -1;
+                    for (int i = 0; i < lista.size(); i++) {
+                        if (lista.get(i).getId() == idPersona) {
+                            position = i;
+                            break;
+                        }
+                    }
+
+                    if (position != -1) {
+                        lista.remove(position);
+                        notifyItemRemoved(position);
+                        notifyItemRangeChanged(position, lista.size());
+                    }
                 },
-                error -> Toast.makeText(context, "Error al eliminar", Toast.LENGTH_SHORT).show()
+                error -> {
+                    String msg = error.toString();
+                    if (error.networkResponse != null && error.networkResponse.data != null) {
+                        msg = new String(error.networkResponse.data);
+                    }
+                    Toast.makeText(context, "Error al eliminar:\n" + msg, Toast.LENGTH_LONG).show();
+                }
         );
 
         Volley.newRequestQueue(context).add(request);
     }
+
+
 
 
 

@@ -39,6 +39,8 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 public class CreateActivity extends AppCompatActivity {
 
@@ -51,12 +53,14 @@ public class CreateActivity extends AppCompatActivity {
     private RequestQueue requestQueue;
     Calendar calendario = Calendar.getInstance();
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_create);
 
+        // ... tus inicializaciones
         imageView = findViewById(R.id.imageView);
         btnfoto = findViewById(R.id.btntakefoto);
         btncreate = findViewById(R.id.btncreate);
@@ -84,10 +88,36 @@ public class CreateActivity extends AppCompatActivity {
             datePickerDialog.show();
         });
 
+        // Detectar si es edición
+        Personas personaEditar = (Personas) getIntent().getSerializableExtra("persona");
+
+        if (personaEditar != null) {
+            // 🔵 MODO EDICIÓN
+            nombres.setText(personaEditar.getNombres());
+            apellidos.setText(personaEditar.getApellidos());
+            telefono.setText(personaEditar.getTelefono());
+            direccion.setText(personaEditar.getDireccion());
+            fechanac.setText(personaEditar.getFechanac());
+
+            btncreate.setText("Actualizar");
+
+            // Usamos actualizarPersona al presionar el botón
+            btncreate.setOnClickListener(v -> {
+                actualizarPersona(personaEditar.getId());
+            });
+
+        } else {
+            // 🟢 MODO CREACIÓN
+            btncreate.setText("Guardar");
+
+            btncreate.setOnClickListener(v -> {
+                SendData(); // usa validación estricta
+            });
+        }
+
         btnfoto.setOnClickListener(v -> PermisosCamara());
 
-        btncreate.setOnClickListener(v -> SendData());
-
+        // Botón atrás
         Button btnAtras = findViewById(R.id.btnAtras);
         btnAtras.setOnClickListener(v -> {
             new androidx.appcompat.app.AlertDialog.Builder(CreateActivity.this)
@@ -97,8 +127,8 @@ public class CreateActivity extends AppCompatActivity {
                     .setNegativeButton("Cancelar", null)
                     .show();
         });
-
     }
+
 
     private void SendData() {
         // Obtener valores y validar
@@ -236,4 +266,48 @@ public class CreateActivity extends AppCompatActivity {
             }
         }
     }
+
+    private void actualizarPersona(int id) {
+        String url = "http://10.0.2.2/CRUD-PHP/UpdatePersons.php";
+
+        requestQueue = Volley.newRequestQueue(this);
+
+        String nombreTxt = nombres.getText().toString().trim();
+        String apellidoTxt = apellidos.getText().toString().trim();
+        String direccionTxt = direccion.getText().toString().trim();
+        String telefonoTxt = telefono.getText().toString().trim();
+        String fechaTxt = fechanac.getText().toString().trim();
+
+        if (nombreTxt.isEmpty() && apellidoTxt.isEmpty() && direccionTxt.isEmpty() &&
+                telefonoTxt.isEmpty() && fechaTxt.isEmpty()) {
+            Toast.makeText(this, "No hay cambios para actualizar", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Map<String, String> params = new HashMap<>();
+        params.put("id", String.valueOf(id));
+        params.put("nombres", nombreTxt);
+        params.put("apellidos", apellidoTxt);
+        params.put("direccion", direccionTxt);
+        params.put("telefono", telefonoTxt);
+        params.put("fechanac", fechaTxt);
+
+        // Solo enviar imagen nueva si se ha tomado
+        params.put("foto", currentPhotoPath != null ? ConvertImageBase64(currentPhotoPath) : "");
+
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, url, new JSONObject(params),
+                response -> {
+                    Toast.makeText(this, "Persona actualizada", Toast.LENGTH_SHORT).show();
+                    finish();
+                },
+                error -> {
+                    Toast.makeText(this, "Error al actualizar", Toast.LENGTH_SHORT).show();
+                });
+
+        requestQueue.add(request);
+    }
+
+
+
+
 }
